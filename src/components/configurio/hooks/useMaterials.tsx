@@ -2,27 +2,33 @@ import Material from "../components/material";
 import React, { Suspense, useMemo, useState } from "react";
 import { MeshStandardMaterial } from "three";
 import { AppliableEffect, ConfiguratorOptions } from "../types";
-import { Selections } from "./useSelections";
+import { Selection } from "../types";
 
 export const useMaterials = ({
   selections,
   customizers,
+  groups,
 }: {
-  selections: Selections;
+  selections: Selection[];
   customizers?: ConfiguratorOptions["customizers"];
+  groups?: ConfiguratorOptions["groups"];
 }) => {
-  const [materialsMap, setMaterialsMap] = useState<{ [targetIndex: number]: MeshStandardMaterial }>({});
+  const [materialsMap, setMaterialsMap] = useState<{ [id: string]: MeshStandardMaterial }>({});
   const materialsArr = useMemo(() => {
-    if (!customizers) return [];
-    return Object.keys(selections).map((key) => {
-      const targetIndex = +key;
-      const materialIndex = selections[targetIndex]?.material;
-      const material = materialIndex != null ? customizers[targetIndex]?.material.options[materialIndex].value : undefined;
-      const colorIndex = selections[targetIndex]?.color;
-      const color = colorIndex != null ? customizers[targetIndex]?.color.options[colorIndex].value : undefined;
-      return { color, material, targetIndex };
-    }) as { targetIndex: number; color?: string; material?: string }[];
-  }, [selections, customizers]);
+    if (!customizers || !groups) return [];
+    const allCustomizerNodes = [...customizers, ...groups];
+    return selections
+      .filter((selection) => allCustomizerNodes.find((x) => x.id === selection.id))
+      .map((selection) => {
+        const customizerNode = allCustomizerNodes.find((x) => x.id === selection.id)!;
+        const targetIndexes = customizerNode.targetIndexes;
+        const materialIndex = selection.material;
+        const material = materialIndex != null ? customizerNode.material.options[materialIndex].value : undefined;
+        const colorIndex = selection.color;
+        const color = colorIndex != null ? customizerNode.color.options[colorIndex].value : undefined;
+        return { id: selection.id, color, material, targetIndexes };
+      }) as { id: string; targetIndexes: number[]; color?: string; material?: string }[];
+  }, [selections, customizers, groups]);
 
   const materialsJsx = useMemo(() => {
     return (
@@ -36,7 +42,7 @@ export const useMaterials = ({
               onLoad={(model) => {
                 setMaterialsMap((prev) => ({
                   ...prev,
-                  [material.targetIndex]: Object.values(model.materials)[0] as MeshStandardMaterial,
+                  [material.id]: Object.values(model.materials)[0] as MeshStandardMaterial,
                 }));
               }}
             />
@@ -49,8 +55,8 @@ export const useMaterials = ({
   const materials = useMemo(() => {
     return materialsArr.map((m) => {
       return {
-        targetIndex: m.targetIndex,
-        material: m.material ? materialsMap[m.targetIndex] : undefined,
+        targetIndexes: m.targetIndexes,
+        material: m.material ? materialsMap[m.id] : undefined,
         color: m.color,
       };
     }) as AppliableEffect[];

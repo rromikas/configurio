@@ -1,13 +1,10 @@
 import { startTransition, useEffect, useMemo, useState } from "react";
-import { Configurator, RenderableCustomizer } from "../types";
-
-export type Selections = {
-  [targetIndex: number]: { color?: number; material?: number } | undefined;
-};
+import { Configurator, RenderableCustomizer, Selection } from "../types";
 
 export const useSelections = (configurator?: Configurator) => {
   const customizers = configurator?.options.customizers;
-  const [selections, setSelections] = useState<Selections>({});
+  const groups = configurator?.options.groups;
+  const [selections, setSelections] = useState<Selection[]>([]);
   const initialSelections = configurator?.options.initialSelections;
 
   useEffect(() => {
@@ -16,47 +13,54 @@ export const useSelections = (configurator?: Configurator) => {
     }
   }, [initialSelections]);
 
-  const select = (targetIndex: number, type: "color" | "material", optionIndex: number | undefined) => {
+  const select = (id: string, type: "color" | "material", optionIndex: number | undefined) => {
     startTransition(() => {
       setSelections((prev) => {
-        return { ...prev, [targetIndex]: { ...(prev[targetIndex] ?? {}), [type]: optionIndex } };
+        let arr = [...prev];
+        const index = arr.findIndex((x) => x.id === id);
+        if (index !== -1) {
+          arr[index][type] = optionIndex;
+        } else {
+          arr.push({ id, [type]: optionIndex });
+        }
+        return arr;
       });
     });
   };
 
   const options = useMemo(() => {
-    if (!customizers) return [];
-    return Object.keys(customizers)
-      .map((key) => {
+    if (!customizers || !groups) return [];
+    let allCustomizerNodes = [...customizers, ...groups];
+    return allCustomizerNodes
+      .map((customizerNode) => {
         let arr: RenderableCustomizer[] = [];
-        const targetIndex = +key;
-        const colorCustomizer = customizers[targetIndex]?.color;
+        const colorCustomizer = customizerNode.color;
         if (colorCustomizer?.options.length) {
           arr.push({
             ...colorCustomizer,
             type: "color",
             options: colorCustomizer.options.map((option, i) => {
-              const isSelected = i === selections[targetIndex]?.color;
+              const isSelected = i === selections.find((x) => x.id === customizerNode.id)?.color;
               return {
                 ...option,
                 isSelected,
-                select: () => select(targetIndex, "color", !isSelected ? i : undefined),
+                select: () => select(customizerNode.id, "color", !isSelected ? i : undefined),
               };
             }),
           });
         }
-        const materialCustomizer = customizers[targetIndex]?.material;
+        const materialCustomizer = customizerNode.material;
         if (materialCustomizer?.options.length) {
           arr.push({
             ...materialCustomizer,
             type: "material",
             options: materialCustomizer.options.map((option, i) => {
-              const isSelected = i === selections[targetIndex]?.material;
+              const isSelected = i === selections.find((x) => x.id === customizerNode.id)?.material;
               return {
                 ...option,
                 isSelected,
                 select: () => {
-                  select(targetIndex, "material", !isSelected ? i : undefined);
+                  select(customizerNode.id, "material", !isSelected ? i : undefined);
                 },
               };
             }),

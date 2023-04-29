@@ -7,14 +7,14 @@ The library provides hook and components for custom rendering of 3d configurator
 Install configurio with npm or yarn
 
 ```bash
-  npm install configurio three
-  yarn add configurio three
+  npm install @rromikas/configurio three
+  yarn add @rromikas/configurio three
 ```
 
 ## Usage
 
 ```javascript
-import { useConfigurio } from 'configurio'
+import { useConfigurio } from '@rromikas/configurio'
 
 function App() {
 

@@ -1,5 +1,4 @@
 import { MeshStandardMaterial } from "three";
-import { Selections } from "./hooks/useSelections";
 
 export interface CustomizerOption {
   value: string;
@@ -29,15 +28,24 @@ export interface RenderableCustomizer {
 }
 
 export interface AppliableEffect {
-  targetIndex: number;
+  targetIndexes: number[];
   material?: MeshStandardMaterial;
   color?: string;
 }
 
+export interface NodeCustomizer {
+  id: string;
+  name: string;
+  color: Customizer;
+  material: Customizer;
+  targetIndexes: number[];
+}
+
 export interface ConfiguratorOptions {
-  customizers: { [targetIndex: number]: { color: Customizer; material: Customizer } | undefined };
+  customizers: NodeCustomizer[];
+  groups: NodeCustomizer[];
   initialCameraPosition?: [number, number, number];
-  initialSelections?: Selections;
+  initialSelections?: Selection[];
 }
 
 export interface Configurator {
@@ -52,4 +60,10 @@ export interface Asset {
   id?: number;
   type: AssetType;
   url: string;
+}
+
+export interface Selection {
+  id: string;
+  color?: number;
+  material?: number;
 }
